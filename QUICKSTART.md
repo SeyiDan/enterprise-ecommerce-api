@@ -1,24 +1,14 @@
 # Quick Start Guide
 
-Get the E-Commerce API running in under 5 minutes.
+Follow these steps to get the E-Commerce API up and running.
 
-## 1. Start the Application
-
+## 1. Launch Services
 ```bash
 docker-compose up --build
 ```
 
-Wait for PostgreSQL to initialize and migrations to run automatically.
-
-## 2. Access the API
-
-Open in your browser:
-- **Swagger UI**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-## 3. Create Admin User
-
-In Swagger UI, navigate to **POST /api/v1/auth/register** and execute:
+## 2. Initialize Admin User
+Use the **POST `/api/v1/auth/register`** endpoint in Swagger UI (http://localhost:8000/docs):
 
 ```json
 {
@@ -30,85 +20,36 @@ In Swagger UI, navigate to **POST /api/v1/auth/register** and execute:
 }
 ```
 
-## 4. Login & Authorize
-
-1. Navigate to **POST /api/v1/auth/login**
-2. Enter credentials: `admin` / `admin123456`
-3. Copy the `access_token`
-4. Click **"Authorize"** button (top right)
-5. Paste token and click "Authorize"
-
-## 5. Test the API
-
-### Create a Product (Admin)
-
-**POST /api/v1/products/**:
-```json
-{
-  "name": "Wireless Mouse",
-  "description": "Ergonomic mouse",
-  "price": 29.99,
-  "stock_quantity": 100,
-  "category": "Electronics"
-}
-```
-
-### Create an Order
-
-1. First, create a customer user (set `"is_admin": false`)
-2. Login as customer and authorize
-3. **POST /api/v1/orders/**:
-
-```json
-{
-  "items": [
-    {
-      "product_id": 1,
-      "quantity": 2
-    }
-  ]
-}
-```
-
-### View Analytics
-
-Navigate to **GET /api/v1/orders/summary** to see the raw SQL analytics.
-
-## Run Tests
-
+## 3. Obtain Access Token
+Authenticate via **POST `/api/v1/auth/login`**:
 ```bash
-docker-compose exec api pytest -v
+curl -X POST "http://localhost:8000/api/v1/auth/login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin&password=admin123456"
 ```
 
-Expected: 21/21 tests passing ✓
+Copy the `access_token` and use the **"Authorize"** button in Swagger UI to unlock protected endpoints.
 
-## Stop the Application
+## 4. Example API Operations
 
+### Create Product (Admin Only)
 ```bash
-# Graceful shutdown
-Ctrl+C
-
-# Or in another terminal
-docker-compose down
-
-# Reset database
-docker-compose down -v
+curl -X POST "http://localhost:8000/api/v1/products/" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Laptop", "price": 999.99, "stock_quantity": 10}'
 ```
 
-## Troubleshooting
+### View Order Summary (Raw SQL)
+Navigate to **GET `/api/v1/orders/summary`** to view performance-optimized order reports.
 
-| Issue | Solution |
-|-------|----------|
-| Port already in use | Change ports in `docker-compose.yml` |
-| Database not ready | Wait 10-15 seconds for PostgreSQL initialization |
-| Migration errors | Run `docker-compose down -v && docker-compose up --build` |
+## 🛠 Troubleshooting
 
-## Next Steps
-
-- Explore all endpoints in Swagger UI
-- Review test files in `tests/` directory
-- Check full documentation in `README.md`
+| Problem | Solution |
+|---------|----------|
+| Port Conflict | Update `8000:8000` in `docker-compose.yml` |
+| DB Connection | Wait 10s for Postgres to initialize |
+| Reset System | `docker-compose down -v` then restart |
 
 ---
-
-**You're all set! 🚀**
+**Happy Testing!** 🚀
