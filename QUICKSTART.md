@@ -1,38 +1,28 @@
 # Quick Start Guide
 
-Follow these steps to get the E-Commerce API up and running.
+Get the E-Commerce API running and test your first requests.
 
-## 1. Launch Services
-```bash
-docker-compose up --build
-```
+## 1. System Management
 
-## 2. Initialize Admin User
-Use the **POST `/api/v1/auth/register`** endpoint in Swagger UI (http://localhost:8000/docs):
+| Action | Command |
+|--------|---------|
+| **Start App** | `docker-compose up --build` |
+| **Stop App** | `docker-compose down` |
+| **Full Reset** | `docker-compose down -v` (Wipes database) |
+| **Run Tests** | `docker-compose exec api pytest -v` |
 
-```json
-{
-  "email": "admin@example.com",
-  "username": "admin",
-  "password": "admin123456",
-  "full_name": "Admin User",
-  "is_admin": true
-}
-```
+## 2. Initial Setup
 
-## 3. Obtain Access Token
-Authenticate via **POST `/api/v1/auth/login`**:
-```bash
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123456"
-```
+1. **Launch Services**: Run `docker-compose up --build`.
+2. **Register Admin**: Visit http://localhost:8000/docs and use **POST `/api/v1/auth/register`**.
+   ```json
+   {"email": "admin@example.com", "username": "admin", "password": "admin123456", "is_admin": true}
+   ```
+3. **Authenticate**: Click the **Authorize** button in Swagger UI and login with your credentials.
 
-Copy the `access_token` and use the **"Authorize"** button in Swagger UI to unlock protected endpoints.
+## 3. Usage Examples
 
-## 4. Example API Operations
-
-### Create Product (Admin Only)
+### Create Product
 ```bash
 curl -X POST "http://localhost:8000/api/v1/products/" \
   -H "Authorization: Bearer <TOKEN>" \
@@ -40,16 +30,13 @@ curl -X POST "http://localhost:8000/api/v1/products/" \
   -d '{"name": "Laptop", "price": 999.99, "stock_quantity": 10}'
 ```
 
-### View Order Summary (Raw SQL)
-Navigate to **GET `/api/v1/orders/summary`** to view performance-optimized order reports.
+### View Performance Analytics
+Navigate to **GET `/api/v1/orders/summary`** to view reports generated via optimized raw SQL queries.
 
 ## 🛠 Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Port Conflict | Update `8000:8000` in `docker-compose.yml` |
-| DB Connection | Wait 10s for Postgres to initialize |
-| Reset System | `docker-compose down -v` then restart |
+*   **Database not ready?** Wait 10s for Postgres initialization on first run.
+*   **Port Conflict?** Ensure port `8000` and `5432` are available on your host.
 
 ---
-**Happy Testing!** 🚀
+**Happy Coding!** 🚀

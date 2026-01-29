@@ -12,6 +12,8 @@ from app.schemas.order import OrderCreate, OrderResponse, OrderSummary
 router = APIRouter()
 
 
+from app.crud.order import create_order as crud_create_order
+
 @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 def create_order(
     order_data: OrderCreate,
@@ -19,57 +21,7 @@ def create_order(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new order."""
-    total_amount = 0.0
-    order_items = []
-    
-    # Validate products and calculate total
-    for item in order_data.items:
-        product = db.query(Product).filter(Product.id == item.product_id).first()
-        
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with id {item.product_id} not found"
-            )
-        
-        if product.stock_quantity < item.quantity:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for product {product.name}"
-            )
-        
-        item_total = product.price * item.quantity
-        total_amount += item_total
-        
-        order_items.append({
-            "product_id": product.id,
-            "quantity": item.quantity,
-            "price_at_purchase": product.price
-        })
-        
-        # Update stock
-        product.stock_quantity -= item.quantity
-    
-    # Create order
-    new_order = Order(
-        user_id=current_user.id,
-        total_amount=total_amount
-    )
-    db.add(new_order)
-    db.flush()  # Get order ID before adding items
-    
-    # Add order items
-    for item_data in order_items:
-        order_item = OrderItem(
-            order_id=new_order.id,
-            **item_data
-        )
-        db.add(order_item)
-    
-    db.commit()
-    db.refresh(new_order)
-    
-    return new_order
+    return crud_create_order(db, order_data, current_user.id)
 
 
 @router.get("/", response_model=List[OrderResponse])
