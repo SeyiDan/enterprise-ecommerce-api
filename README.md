@@ -15,7 +15,18 @@ Enterprise-grade RESTful API built with **FastAPI** and **PostgreSQL**. Designed
 - **Database**: PostgreSQL 15, SQLAlchemy 2.0 (ORM + Core)
 - **Infrastructure**: Docker, Docker Compose
 - **Migrations**: Alembic
-- **Quality**: Pytest, 26 tests, **96% statement coverage** (`pytest --cov=app`)
+- **Quality**: Pytest, 42 tests, **97% statement coverage** (`pytest --cov=app`)
+
+## 🔐 Security
+
+This project was self-audited for security. See:
+
+- [**SECURITY-AUDIT.md**](./SECURITY-AUDIT.md): 8 findings, each with a proof-of-concept,
+  a fix commit, and a regression test (`pytest -m security`, 16 tests).
+- [**docs/threat-model.md**](./docs/threat-model.md): STRIDE model with a data flow diagram
+  and CVSS-scored top risks.
+- [**.github/workflows/security.yml**](./.github/workflows/security.yml): a CI gate running
+  Semgrep, Trivy, gitleaks, and pip-audit that blocks any merge with a HIGH+ finding.
 
 ## 📦 Project Structure
 
