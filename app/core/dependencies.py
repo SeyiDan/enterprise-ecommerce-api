@@ -25,11 +25,19 @@ def get_current_user(
     if payload is None:
         raise credentials_exception
     
-    user_id: Optional[int] = payload.get("sub")
-    if user_id is None:
+    raw_sub = payload.get("sub")
+    if raw_sub is None:
         raise credentials_exception
-    
-    user = db.query(User).filter(User.id == int(user_id)).first()
+
+    # The subject is attacker-influenced data; parse it at the boundary. A
+    # non-numeric sub used to reach int() and raise ValueError -> HTTP 500,
+    # leaking that the token was otherwise valid (CWE-703).
+    try:
+        user_id = int(raw_sub)
+    except (TypeError, ValueError):
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise credentials_exception
     

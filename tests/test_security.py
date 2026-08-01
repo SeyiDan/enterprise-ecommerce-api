@@ -85,6 +85,55 @@ def test_non_admin_cannot_list_all_orders(client, db_session, test_user, test_ad
     assert owners <= {test_user.id}
 
 
+# --- ECOM-03: JWT verification + malformed subject 500 (CWE-347, CWE-703) ----
+
+def _forge(sub, **overrides):
+    """Build a token, letting a test override the signing key or claims."""
+    from datetime import datetime, timedelta, timezone
+    from jose import jwt
+    from app.core.config import settings
+
+    now = datetime.now(timezone.utc)
+    claims = {
+        "sub": sub,
+        "exp": now + timedelta(minutes=5),
+        "nbf": now,
+        "iat": now,
+        "iss": settings.JWT_ISSUER,
+        "aud": settings.JWT_AUDIENCE,
+    }
+    claims.update(overrides.get("claims", {}))
+    key = overrides.get("key", settings.SECRET_KEY)
+    return jwt.encode(claims, key, algorithm=settings.ALGORITHM)
+
+
+def test_token_signed_with_wrong_key_is_rejected(client, test_user):
+    token = _forge(str(test_user.id), key="a-different-key-that-is-long-enough-xxxx")
+    resp = client.get("/api/v1/orders/", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
+def test_token_with_wrong_audience_is_rejected(client, test_user):
+    token = _forge(str(test_user.id), claims={"aud": "some-other-service"})
+    resp = client.get("/api/v1/orders/", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
+def test_expired_token_is_rejected(client, test_user):
+    from datetime import datetime, timedelta, timezone
+    token = _forge(str(test_user.id),
+                   claims={"exp": datetime.now(timezone.utc) - timedelta(seconds=1)})
+    resp = client.get("/api/v1/orders/", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
+def test_malformed_subject_returns_401_not_500(client):
+    """A validly-signed token with a non-numeric sub must be 401, never 500."""
+    token = _forge("not-an-integer")
+    resp = client.get("/api/v1/orders/", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
 def test_order_summary_scopes_to_owner(client, db_session, test_user, test_admin_user,
                                        auth_headers, admin_auth_headers):
     """The raw-SQL summary must honour the tenant boundary in its WHERE clause.
