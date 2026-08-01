@@ -61,3 +61,4 @@ postgres_data/
 
 # Alembic - Keep migration files but ignore Python cache
 alembic/versions/__pycache__/
+reports/
