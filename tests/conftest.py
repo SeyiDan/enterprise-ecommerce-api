@@ -1,3 +1,12 @@
+import os
+
+# SECRET_KEY has no default in production (CWE-798 fix), so the test process must
+# supply one before any app.* import triggers Settings() at module load. This must
+# stay above the app imports below.
+os.environ.setdefault("SECRET_KEY", "test-only-secret-not-a-real-key-0123456789abcdef")
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("DEBUG", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

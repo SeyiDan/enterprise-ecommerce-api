@@ -4,8 +4,38 @@ Each test guards one finding. Reverting the corresponding fix commit should turn
 its test red. Run just these with:  pytest -m security
 """
 import pytest
+from pydantic import ValidationError
+
+from app.core.config import Settings
 
 pytestmark = pytest.mark.security
+
+
+# --- ECOM-02: hardcoded / weak SECRET_KEY (CWE-798) --------------------------
+
+def test_settings_rejects_known_placeholder_secret(monkeypatch):
+    """Booting with a known placeholder signing key must fail loudly."""
+    monkeypatch.setenv("SECRET_KEY", "your-secret-key-change-in-production")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_rejects_short_secret(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "tooshort")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_requires_secret_key(monkeypatch):
+    """No SECRET_KEY at all must fail, not fall back to a default."""
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_settings_accepts_strong_secret(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "x" * 48)
+    assert Settings(_env_file=None).SECRET_KEY == "x" * 48
 
 
 # --- ECOM-01: privilege escalation via self-registration (CWE-269) -----------
