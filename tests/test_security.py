@@ -155,3 +155,53 @@ def test_order_summary_scopes_to_owner(client, db_session, test_user, test_admin
     as_admin = client.get("/api/v1/orders/summary", headers=admin_auth_headers).json()
     emails_admin = {row["user_email"] for row in as_admin}
     assert {test_user.email, test_admin_user.email} <= emails_admin
+
+
+# --- ECOM-04: login rate limiting (CWE-307) ----------------------------------
+
+def test_login_locks_out_after_repeated_failures(client, test_user):
+    """Six bad passwords in a row: the sixth is throttled with 429."""
+    bad = {"username": test_user.username, "password": "wrong-password"}
+    for _ in range(5):
+        assert client.post("/api/v1/auth/login", data=bad).status_code == 401
+    throttled = client.post("/api/v1/auth/login", data=bad)
+    assert throttled.status_code == 429
+    assert "Retry-After" in throttled.headers
+
+
+def test_correct_login_not_affected_by_other_users_failures(client, test_user):
+    """A fresh (ip, username) pair with correct credentials still logs in."""
+    resp = client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.username, "password": "testpassword123"},
+    )
+    assert resp.status_code == 200
+
+
+# --- ECOM-05: user enumeration on registration (CWE-204) ---------------------
+
+def test_duplicate_registration_does_not_confirm_account(client, test_user):
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": test_user.email,
+            "username": test_user.username,
+            "password": "LongEnoughPass123",
+            "full_name": "Dupe",
+        },
+    )
+    assert resp.status_code == 409
+    assert "already registered" not in resp.json()["detail"]
+    assert "email" not in resp.json()["detail"].lower()
+
+
+# --- ECOM-06: CORS not a wildcard with credentials (CWE-942) -----------------
+
+def test_cors_rejects_unlisted_origin(client):
+    resp = client.get(
+        "/api/v1/products/",
+        headers={"Origin": "https://evil.example",
+                 "Access-Control-Request-Method": "GET"},
+    )
+    assert resp.headers.get("access-control-allow-origin") != "*"
+    assert resp.headers.get("access-control-allow-origin") != "https://evil.example"

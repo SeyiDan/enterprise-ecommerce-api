@@ -28,6 +28,15 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """The login throttle keeps in-process state; isolate it per test (H5)."""
+    from app.core import ratelimit
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
+
+
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database session for each test."""

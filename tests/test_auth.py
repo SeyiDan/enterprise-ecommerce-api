@@ -35,8 +35,9 @@ def test_register_duplicate_user(client, test_user):
         }
     )
     
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "already registered" in response.json()["detail"]
+    # Generic response: registration must not confirm which account exists (CWE-204).
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert "already registered" not in response.json()["detail"]
 
 
 def test_login_success(client, test_user):
