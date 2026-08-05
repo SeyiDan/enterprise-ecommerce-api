@@ -11,9 +11,15 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    """Schema for creating a new user."""
+    """Schema for creating a new user.
+
+    Note: is_admin is intentionally absent and rejected. Registration must never
+    let a caller set their own privilege level (CWE-269). extra="forbid" turns a
+    request carrying is_admin into a 422 instead of silently ignoring it. Admins
+    are provisioned out of band via scripts/create_admin.py.
+    """
+    model_config = ConfigDict(extra="forbid")
     password: str = Field(..., min_length=8, max_length=100)
-    is_admin: bool = False
 
 
 class UserLogin(BaseModel):

@@ -1,3 +1,12 @@
+import os
+
+# SECRET_KEY has no default in production (CWE-798 fix), so the test process must
+# supply one before any app.* import triggers Settings() at module load. This must
+# stay above the app imports below.
+os.environ.setdefault("SECRET_KEY", "test-only-secret-not-a-real-key-0123456789abcdef")
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("DEBUG", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -17,6 +26,15 @@ engine = create_engine(
 )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """The login throttle keeps in-process state; isolate it per test (H5)."""
+    from app.core import ratelimit
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
 
 
 @pytest.fixture(scope="function")

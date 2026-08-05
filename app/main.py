@@ -12,10 +12,12 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configure CORS
+# Configure CORS. allow_origins="*" together with allow_credentials=True is
+# invalid and unsafe: it would let any site make credentialed cross-origin calls
+# (CWE-942). Use an explicit allowlist from settings instead.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
