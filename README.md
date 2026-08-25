@@ -1,7 +1,6 @@
 # E-Commerce API
 
-A production-shaped REST API built with **FastAPI** and **PostgreSQL**: 13 endpoints across auth,
-products and orders plus root and health checks, with 42 tests at 97% statement coverage.
+A production-shaped REST API built with **FastAPI** and **PostgreSQL**: 13 endpoints: auth, products and orders, plus root and health checks, with 42 tests at 97% statement coverage.
 
 Two things here are worth more than the feature list:
 
@@ -39,10 +38,10 @@ The registration schema exposed an `is_admin` field and copied it straight into 
 Nothing checked it. `security/poc/poc_privesc.py` walks the full chain:
 
 ```
-[1] POST /register  {"is_admin": true}  -> 201, account created as admin
-[2] POST /login                         -> 200, bearer token
-[3] GET  /orders/                       -> every order in the system, not just mine
-[4] GET  /orders/summary                -> victim.customer@example.com, order total 4207.55
+[1] POST /api/v1/auth/register  {"is_admin": true}  -> 201, account created as admin
+[2] POST /api/v1/auth/login                         -> 200, bearer token
+[3] GET  /api/v1/orders/                            -> every order, not just mine
+[4] GET  /api/v1/orders/summary                     -> victim@example.com, total 4207.55
 ```
 
 The point is not that a field was unvalidated. It is that admin was not cosmetic: the summary
@@ -58,7 +57,9 @@ Full detail, including the other seven findings:
 - [**docs/threat-model.md**](./docs/threat-model.md): STRIDE model with a data flow diagram
   and CVSS-scored top risks.
 - [**.github/workflows/security.yml**](./.github/workflows/security.yml): CI gate running
-  Semgrep, Trivy, gitleaks and pip-audit. Blocks any merge with a HIGH+ finding.
+  Semgrep, Trivy, gitleaks and pip-audit. The gate job **fails the build** on a non-baselined
+  HIGH+ finding. Whether that blocks a merge depends on branch protection, which is a repository
+  setting and not something this file can promise.
 
 ## 📊 Measured Performance
 
@@ -70,15 +71,22 @@ naive alternative, resolving each order's owner and item count with per-order la
 commit. Nothing was rewritten or replaced. The N+1 version exists only inside `bench.py`, written
 to measure what the ORM approach would have cost.
 
-Reproduce with `python bench.py` (500 orders x 4 line items = 2,000 `order_items`, SQLite
-in-memory, median of 15 runs):
+Reproduce it yourself (500 orders x 4 line items = 2,000 `order_items`, SQLite in-memory,
+median of 15 runs). `bench.py` reads settings, so both variables must be set:
+
+```bash
+SECRET_KEY="$(python -c 'import secrets;print(secrets.token_urlsafe(32))')" \n  DATABASE_URL="sqlite+aiosqlite:///./bench.db" python bench.py
+```
+
+**Timings vary widely.** Repeated runs of this benchmark have spanned 70x to 229x depending on
+the machine. The query count is the structural result and does not vary; the multiplier does.
 
 | Approach | Queries | Median | Min | Max |
 |---|---|---|---|---|
 | Raw SQL aggregate | **1** | **5.42 ms** | 4.65 ms | 7.89 ms |
 | Naive ORM (N+1) | **1,001** | 715.07 ms | 684.26 ms | 811.36 ms |
 
-**99.2% fewer queries, roughly 130x faster.** The query count is the structural result and
+**99.90% fewer queries** (1 instead of 1,001), and roughly 130x faster on this run. The query count is the structural result and
 holds on any database. The timings are hardware-dependent, and the gap widens against
 PostgreSQL over a network, where 1,001 round trips cost far more than they do against
 in-memory SQLite.
@@ -107,8 +115,8 @@ pytest --cov=app                                  # 42 passed, 97% coverage
 
 **Note on the `bcrypt==4.0.1` pin.** This project previously shipped no `requirements.txt`, so
 a clean install resolved `bcrypt` 5.x, which removed the `__about__.__version__` attribute that
-`passlib` 1.7.4 reads. `passlib` then mis-handles bcrypt's 72-byte password limit and **19 of 21
-tests fail** with `ValueError: password cannot be longer than 72 bytes`. Pinning `bcrypt==4.0.1`
+`passlib` 1.7.4 reads. `passlib` then mis-handles bcrypt's 72-byte password limit and **28 of the 42
+tests** fail or error with `ValueError: password cannot be longer than 72 bytes`. Pinning `bcrypt==4.0.1`
 restores the suite. Do not unpin without replacing `passlib`.
 
 For Docker commands and API testing guides, see [**QUICKSTART.md**](./QUICKSTART.md).
