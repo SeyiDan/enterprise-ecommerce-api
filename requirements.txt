@@ -1,4 +1,4 @@
-# Pinned working set. Verified 2026-07-30: `pytest --cov=app` -> 26 passed, 96% coverage
+# Pinned working set. Verified 2026-08-25: `pytest --cov=app` -> 42 passed, 97% coverage
 # in a clean venv built from this file.
 #
 # bcrypt is pinned to 4.x deliberately. passlib 1.7.4 reads bcrypt's removed
