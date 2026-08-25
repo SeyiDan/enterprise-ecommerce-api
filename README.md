@@ -8,8 +8,8 @@ Two things here are worth more than the feature list:
 - **I audited it against myself and found a critical privilege escalation.** An anonymous
   visitor could make themselves an administrator and read another customer's email address and
   order history in **four HTTP requests**. There is a script that proves it. [Jump to it](#-security).
-- **I made one endpoint ~130x faster** by replacing 1,001 queries with 1, and published the
-  benchmark so you can re-run it. [Jump to it](#-measured-performance).
+- **One endpoint runs ~130x faster than the naive version of itself**, 1 query instead of 1,001,
+  with the benchmark published so you can re-run it. [Jump to it](#-measured-performance).
 
 ## 🛠 Tech Stack
 
@@ -62,9 +62,13 @@ Full detail, including the other seven findings:
 
 ## 📊 Measured Performance
 
-The order-reporting endpoint resolved each order's owner and item count with per-order lazy
-loads, so one page of 500 orders issued **1,001 queries**. It now runs as a single raw SQL
-aggregate with a `JOIN` and `GROUP BY`.
+The order-reporting endpoint is a single raw SQL aggregate with a `JOIN` and `GROUP BY`. The
+naive alternative, resolving each order's owner and item count with per-order lazy loads, issues
+**1,001 queries** for one page of 500 orders.
+
+**To be exact about the history:** this endpoint was written as the SQL aggregate in the first
+commit. Nothing was rewritten or replaced. The N+1 version exists only inside `bench.py`, written
+to measure what the ORM approach would have cost.
 
 Reproduce with `python bench.py` (500 orders x 4 line items = 2,000 `order_items`, SQLite
 in-memory, median of 15 runs):
