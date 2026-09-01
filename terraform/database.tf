@@ -35,9 +35,9 @@ resource "azurerm_postgresql_flexible_server" "main" {
   // off to save pennies gives away the only thing you are paying for.
   backup_retention_days = 7
 
-  // Zone-redundant HA would double the cost and is the wrong lesson here. The
-  // high-availability claim in this project is about the stateless tier.
-  // Say that plainly rather than implying the database is HA too.
+  // Pinned to a single zone. The high-availability properties this project
+  // documents apply to the stateless tier; the database is not zone-redundant,
+  // and that distinction is stated rather than implied.
   zone = "1"
 
   // Public endpoint guarded by firewall rules, rather than a private endpoint
@@ -45,7 +45,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   //
   // Private networking is the production-correct answer. It is deliberately not
   // used here because it requires a delegated subnet, a private DNS zone and a
-  // VNet peering, and none of that can be reached from your laptop to run
+  // VNet peering, and none of that can be reached from a workstation to run
   // migrations. The tradeoff is real and you should name it when asked.
   public_network_access_enabled = true
 

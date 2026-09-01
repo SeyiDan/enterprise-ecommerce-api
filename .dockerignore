@@ -32,13 +32,13 @@ README.md
 PROJECT_BRIEF.md
 tests/
 
-# Infrastructure code. None of it belongs in the application image, and one file
-# in here is actively dangerous: terraform/terraform.tfstate holds the generated
-# Postgres password in plain text. The Dockerfile ends with `COPY . .`, so
-# without these lines the state file is uploaded to the registry as part of the
-# build context AND baked into a layer, where anyone who can pull the image can
-# read it. Excluding it also drops the context from 335 MB to under 1 MB,
-# because .terraform/ carries the provider plugins.
+# Infrastructure code, which does not belong in the application image.
+#
+# These entries are load-bearing rather than tidiness: the Dockerfile ends with
+# `COPY . .`, and terraform state contains generated credentials in plain text.
+# Without these lines that state is uploaded in the build context and baked into
+# a layer readable by anyone who can pull the image. Excluding .terraform/ also
+# keeps the context small, since it holds the provider plugins.
 terraform/
 k8s/
 *.tfstate

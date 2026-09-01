@@ -2,7 +2,7 @@
 //
 // "Managed Kubernetes" means Azure runs the control plane (the API server, the
 // scheduler, etcd) and you run only the worker nodes. The control plane on the
-// Free tier costs nothing; the nodes are ordinary VMs and are the entire bill.
+// scheduler, etcd) while you run only the worker nodes.
 resource "azurerm_kubernetes_cluster" "main" {
   name                = "${var.prefix}-aks"
   location            = azurerm_resource_group.main.location
@@ -10,10 +10,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   dns_prefix          = "${var.prefix}-${local.suffix}"
   kubernetes_version  = var.kubernetes_version
 
-  // Free tier: no uptime SLA on the control plane, no charge for it either.
-  // Standard buys a financially-backed SLA. For a demo the SLA is worth nothing
-  // and the cost is real, so Free is the right call and you should be able to
-  // say why.
+  // Free tier provides no uptime SLA on the control plane. Standard provides a
+  // financially-backed one. The availability guarantees this project makes are
+  // about the workload tier, not the control plane, so Free is consistent with
+  // what is claimed.
   sku_tier = "Free"
 
   default_node_pool {

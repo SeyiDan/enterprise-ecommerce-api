@@ -12,10 +12,9 @@ resource "random_string" "suffix" {
 
 // One resource group holds everything.
 //
-// This is the single most useful safety property of the whole stack: deleting
-// this group deletes every resource inside it. `terraform destroy` is the
-// correct way to tear down, but the group is the backstop that guarantees
-// nothing is left quietly billing after the demo is over.
+// Deleting the group deletes every resource inside it. `terraform destroy` is
+// the correct teardown path; the group is the backstop that guarantees no
+// resource is left behind.
 resource "azurerm_resource_group" "main" {
   name     = "${var.prefix}-rg"
   location = var.location
@@ -26,8 +25,8 @@ resource "azurerm_resource_group" "main" {
 locals {
   suffix = random_string.suffix.result
 
-  // Tags are not decoration. `expires` is a note to your future self, and
-  // `cost-center` is the field a real employer filters the bill by.
+  // Tags carry ownership and lifecycle metadata, which is what billing and
+  // cleanup tooling filters on.
   tags = {
     project     = "enterprise-ecommerce-api"
     managed-by  = "terraform"

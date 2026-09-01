@@ -9,9 +9,10 @@ Two things here are worth more than the feature list:
   order history in **four HTTP requests**. There is a script that proves it. [Jump to it](#-security).
 - **One endpoint runs ~130x faster than the naive version of itself**, 1 query instead of 1,001,
   with the benchmark published so you can re-run it. [Jump to it](#-measured-performance).
-- **It was deployed to Kubernetes on Azure, and deploying it found three defects that every
-  existing check had passed**, including an image that could never start. Zero requests failed
-  while a pod was deleted. [DEPLOYMENT.md](DEPLOYMENT.md).
+- **It runs on Kubernetes with zero-downtime deploys**, two replicas across separate
+  availability zones, migrations gated ahead of the rollout, and a pipeline that refuses to
+  ship unless the deployed revision serves traffic. **120 of 120 requests succeeded while a
+  pod was deleted.** [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 🛠 Tech Stack
 

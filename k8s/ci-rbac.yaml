@@ -1,22 +1,16 @@
-# The identity GitHub Actions deploys as.
+# The identity the deploy pipeline authenticates as.
 #
-# WHY THIS FILE EXISTS AT ALL
+# Workload identity federation would avoid storing a credential at all, and it
+# requires an Azure AD application registration that is not available in this
+# directory. A credential therefore has to be stored, which makes its scope the
+# design question.
 #
-# The right answer is OIDC federation: GitHub proves its identity to Azure per
-# run and no credential is ever stored. That needs an Azure AD app registration,
-# and the pvamu.edu tenant refuses one ("Insufficient privileges to complete the
-# operation"). Subscription Owner does not help, because registering an
-# application is a directory permission, not an RBAC role.
-#
-# So a credential has to be stored. The question becomes how much damage a leaked
-# one can do. `az aks get-credentials` returns cluster-admin on this cluster,
-# because AAD RBAC is not enabled and there is no lesser tier. Putting that in a
-# PUBLIC repository's Actions secrets would mean a leak equals total cluster
-# takeover.
-#
-# This ServiceAccount is the smaller blast radius: it can roll out this one app
-# in this one namespace, and nothing else. Notably it has NO access to secrets,
-# so the pipeline cannot read the Postgres password it deploys against.
+# `az aks get-credentials` returns cluster-admin, because AAD RBAC is not enabled
+# on this cluster and there is no lesser tier. This ServiceAccount is the
+# alternative: bound by a Role rather than a ClusterRole, it can roll out one
+# application in one namespace and nothing else. It has no access to Secrets, so
+# the pipeline deploys the application without being able to read the database
+# credentials it deploys against.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

@@ -32,7 +32,7 @@ output "postgres_fqdn" {
 // `sensitive` hides it from the terminal. It does NOT encrypt it: the value sits
 // in plain text inside terraform.tfstate, which is exactly why that file is
 // gitignored and why real teams keep state in a remote backend with access
-// control rather than on a laptop.
+// control rather than on a workstation.
 output "database_url" {
   description = "Full SQLAlchemy connection string for the app's DATABASE_URL."
   value = format(

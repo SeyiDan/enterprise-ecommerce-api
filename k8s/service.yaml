@@ -9,8 +9,7 @@ kind: Service
 metadata:
   name: ecomapi
 spec:
-  # LoadBalancer asks Azure for a real public IP and wires it to these pods.
-  # This is the resource that costs money beyond the nodes themselves.
+  # LoadBalancer provisions an Azure public IP and wires it to these pods.
   type: LoadBalancer
   selector:
     app: ecomapi

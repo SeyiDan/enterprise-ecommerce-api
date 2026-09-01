@@ -50,26 +50,17 @@ echo "==> image   : $IMAGE"
 retry az aks get-credentials --resource-group "$RG" --name "$CLUSTER" --overwrite-existing
 kubectl cluster-info >/dev/null
 
-# 2. Build for arm64, locally.
+# 2. Build for arm64.
 #
-# WHY ARM AT ALL
+# The nodes are Arm, because every x64 2-vCPU family has zero quota in this
+# subscription. The image must match: an amd64 image reaches the node and exits
+# with `exec format error`.
 #
-# The nodes are Standard_B2ps_v2, which is Arm. That was not a preference: the
-# student subscription has 0/0 quota for every x64 2-vCPU family, so Arm was the
-# only size that could be allocated. An amd64 image lands on the node and dies
-# with `exec format error`, which looks like a broken app and is not.
-#
-# WHY NOT `az acr build`
-#
-# Building server-side in Azure would be the obvious answer and it is not
-# available: ACR Tasks returns TasksOperationsNotAllowed on an Azure for Students
-# subscription. That is a platform restriction, not a permissions problem, and no
-# amount of retrying changes it.
-#
-# So the build happens here, on an x64 laptop, targeting Arm. binfmt registers a
-# QEMU interpreter with the kernel so Arm binaries can execute during the build.
-# It is correct but slow, because every compiled wheel is emulated instruction by
-# instruction. Expect 15 to 30 minutes on a cold cache.
+# ACR Tasks is unavailable here (`TasksOperationsNotAllowed`), so the build is
+# local. On an x64 host that means emulation: binfmt registers a QEMU
+# interpreter so Arm binaries can execute during the build. Correct but slow,
+# since every compiled wheel is emulated. Expect 15 to 30 minutes on a cold
+# cache. The CI job avoids this by running on a native Arm runner.
 az acr login --name "$ACR_NAME"
 
 docker run --privileged --rm tonistiigi/binfmt --install arm64
