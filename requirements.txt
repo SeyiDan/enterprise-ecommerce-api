@@ -12,6 +12,16 @@ fastapi==0.141.1
 starlette==1.3.1
 python-multipart==0.0.32
 
+# ASGI server.
+#
+# This was missing until 2026-09-01, and its absence was invisible for months:
+# the Dockerfile CMD and docker-compose both invoke `uvicorn`, but the test suite
+# runs the app through httpx's ASGI transport and never starts a server. So
+# `pytest` passed, the image built with no error, and every container died at
+# startup with `exec: "uvicorn": executable file not found in $PATH`. Nothing
+# except actually running the container could have caught it.
+uvicorn[standard]==0.52.4
+
 # Data validation
 pydantic==2.13.4
 pydantic-settings==2.14.2
