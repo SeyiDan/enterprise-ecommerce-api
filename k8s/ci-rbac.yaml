@@ -1,0 +1,99 @@
+# The identity GitHub Actions deploys as.
+#
+# WHY THIS FILE EXISTS AT ALL
+#
+# The right answer is OIDC federation: GitHub proves its identity to Azure per
+# run and no credential is ever stored. That needs an Azure AD app registration,
+# and the pvamu.edu tenant refuses one ("Insufficient privileges to complete the
+# operation"). Subscription Owner does not help, because registering an
+# application is a directory permission, not an RBAC role.
+#
+# So a credential has to be stored. The question becomes how much damage a leaked
+# one can do. `az aks get-credentials` returns cluster-admin on this cluster,
+# because AAD RBAC is not enabled and there is no lesser tier. Putting that in a
+# PUBLIC repository's Actions secrets would mean a leak equals total cluster
+# takeover.
+#
+# This ServiceAccount is the smaller blast radius: it can roll out this one app
+# in this one namespace, and nothing else. Notably it has NO access to secrets,
+# so the pipeline cannot read the Postgres password it deploys against.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: default
+rules:
+  # Roll the app and read rollout status. `kubectl rollout status` watches the
+  # Deployment and its ReplicaSets, so both are needed.
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+  # Migrations run as a Job, and a completed Job's pod template is immutable, so
+  # each deploy deletes the previous one before creating a new one.
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Read pods to follow the rollout and pull logs when something fails.
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch"]
+
+  # Non-secret config travels with the code, so the pipeline applies it.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "update", "patch"]
+
+  # Read-only on the Service: the pipeline reports the public IP, it does not
+  # change the load balancer.
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "create", "update", "patch"]
+
+# DELIBERATELY ABSENT, and each absence is a decision:
+#   secrets            the pipeline never needs to read DATABASE_URL or SECRET_KEY.
+#                      The kubelet mounts them; CI only names them.
+#   nodes              nothing in a deploy needs cluster-level access.
+#   rbac.authorization it must not be able to grant itself more.
+#   namespaces         a Role, not a ClusterRole, so this is default-only.
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: default
+
+---
+# Since Kubernetes 1.24 a ServiceAccount no longer gets a permanent token
+# automatically; tokens are short-lived and projected into pods. A pipeline
+# running outside the cluster needs a long-lived one, and this is the supported
+# way to ask for it explicitly rather than by accident.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-token
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: github-deployer
+type: kubernetes.io/service-account-token
