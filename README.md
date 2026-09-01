@@ -9,12 +9,15 @@ Two things here are worth more than the feature list:
   order history in **four HTTP requests**. There is a script that proves it. [Jump to it](#-security).
 - **One endpoint runs ~130x faster than the naive version of itself**, 1 query instead of 1,001,
   with the benchmark published so you can re-run it. [Jump to it](#-measured-performance).
+- **It was deployed to Kubernetes on Azure, and deploying it found three defects that every
+  existing check had passed**, including an image that could never start. Zero requests failed
+  while a pod was deleted. [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 🛠 Tech Stack
 
 - **Core**: FastAPI, Python 3.11
 - **Database**: PostgreSQL 15, SQLAlchemy 2.0 (ORM + Core)
-- **Infrastructure**: Docker, Docker Compose
+- **Infrastructure**: Docker, Docker Compose, Terraform, Kubernetes (AKS), GitHub Actions
 - **Migrations**: Alembic
 - **Quality**: pytest, 42 tests, **97% statement coverage** (`pytest --cov=app`)
 
